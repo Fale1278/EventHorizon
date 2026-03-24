@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "boilerplate",
     "token_vesting",
+    "staking",
 ]
 
 [profile.release]
