@@ -5,6 +5,10 @@ const {
     authRateLimiter,
 } = require('./middleware/rateLimit.middleware');
 const {
+    requestLogger,
+    errorLogger,
+} = require('./middleware/logging.middleware');
+const {
     errorHandler,
     notFoundHandler,
 } = require('./middleware/error.middleware');
@@ -13,11 +17,13 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use(requestLogger);
 app.use(globalRateLimiter);
 app.use('/api/auth', authRateLimiter);
 
 app.use('/api/docs', require('./routes/docs.routes'));
 app.use('/api/triggers', require('./routes/trigger.routes'));
+app.use('/api/stats', require('./routes/stats.routes'));
 /**
  * @openapi
  * /api/health:
@@ -40,6 +46,7 @@ app.use('/api/triggers', require('./routes/trigger.routes'));
  */
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
 
+app.use(errorLogger);
 app.use(notFoundHandler);
 app.use(errorHandler);
 

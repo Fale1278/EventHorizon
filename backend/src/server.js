@@ -1,18 +1,34 @@
 const mongoose = require('mongoose');
 require('dotenv').config();
+const logger = require('./config/logger');
 const app = require('./app');
+
 const PORT = process.env.PORT || 5000;
 
-// Database Connection
-mongoose.connect(process.env.MONGO_URI)
+mongoose
+    .connect(process.env.MONGO_URI)
     .then(() => {
-        console.log('✅ Connected to MongoDB');
+        logger.info('Connected to MongoDB', {
+            database: 'MongoDB',
+            status: 'connected',
+            uri: process.env.MONGO_URI?.replace(/\/\/.*@/, '//***@'),
+        });
+
         app.listen(PORT, () => {
-            console.log(`🚀 Server running on port ${PORT}`);
+            logger.info('Server started successfully', {
+                port: PORT,
+                environment: process.env.NODE_ENV || 'development',
+                pid: process.pid,
+            });
         });
     })
-    .catch(err => {
-        console.error('❌ MongoDB connection error:', err);
+    .catch((err) => {
+        logger.error('MongoDB connection failed', {
+            error: err.message,
+            stack: err.stack,
+            database: 'MongoDB',
+        });
+        process.exit(1);
     });
 
 // TODO: Initialize Workers

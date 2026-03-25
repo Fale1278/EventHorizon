@@ -1,4 +1,5 @@
 const axios = require('axios');
+const logger = require('../config/logger');
 
 /**
  * Service to handle Telegram Bot notifications
@@ -14,16 +15,35 @@ class TelegramService {
      */
     async sendTelegramMessage(botToken, chatId, text) {
         if (!botToken || !chatId || !text) {
-            throw new Error('Telegram Bot Token, Chat ID, and message text are required.');
+            const error = 'Telegram Bot Token, Chat ID, and message text are required.';
+            logger.error('Invalid Telegram message parameters', {
+                hasToken: !!botToken,
+                hasChatId: !!chatId,
+                hasText: !!text,
+                service: 'telegram'
+            });
+            throw new Error(error);
         }
 
         const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+
+        logger.info('Sending Telegram message', {
+            chatId: chatId,
+            textLength: text.length,
+            service: 'telegram'
+        });
 
         try {
             const response = await axios.post(url, {
                 chat_id: chatId,
                 text: text,
                 parse_mode: 'MarkdownV2'
+            });
+
+            logger.info('Telegram message sent successfully', {
+                chatId: chatId,
+                messageId: response.data.result?.message_id,
+                service: 'telegram'
             });
 
             return response.data;
@@ -38,20 +58,41 @@ class TelegramService {
                 // 403 - Bot was blocked by the user
                 
                 if (status === 400 && data.description.includes('chat not found')) {
-                    console.error(`Telegram Error: Chat ID ${chatId} not found.`);
+                    logger.error('Telegram chat not found', {
+                        chatId: chatId,
+                        status: status,
+                        service: 'telegram'
+                    });
                 } else if (status === 401) {
-                    console.error('Telegram Error: Invalid Bot Token.');
+                    logger.error('Invalid Telegram Bot Token', {
+                        status: status,
+                        service: 'telegram'
+                    });
                 } else if (status === 403) {
-                    console.error(`Telegram Error: Bot blocked by user in chat ${chatId}.`);
+                    logger.error('Bot blocked by user', {
+                        chatId: chatId,
+                        status: status,
+                        service: 'telegram'
+                    });
                 } else {
-                    console.error('Telegram API Error:', data.description || error.message);
+                    logger.error('Telegram API error', {
+                        status: status,
+                        description: data.description,
+                        chatId: chatId,
+                        service: 'telegram'
+                    });
                 }
                 
                 // Return a structured error response instead of crashing
                 return { success: false, status, message: data.description };
             }
 
-            console.error('Telegram Service Error:', error.message);
+            logger.error('Telegram service error', {
+                error: error.message,
+                stack: error.stack,
+                chatId: chatId,
+                service: 'telegram'
+            });
             throw error;
         }
     }
